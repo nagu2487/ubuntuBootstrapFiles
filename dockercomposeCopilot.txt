@@ -1,0 +1,64 @@
+version: '3'
+services:
+  mongodb:
+    image: mongo
+    ports:
+      - '27017:27017'
+  nodedocker_app:
+    build:
+      context: ./nodedocker_app
+    ports:
+      - '3000:3000'
+    networks:
+      - example-net
+  nginx:
+    image: nginx
+    ports:
+      - '80:80'
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+    networks:
+      - example-net
+networks:
+  example-net:
+  
+  
+  
+server {
+    listen 80;
+    server_name localhost;
+
+    location / {
+        proxy_pass http://nodedocker_app:3000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+
+
+mkdir nodedocker_app
+
+
+# Use an official Node.js image as the base
+FROM node:14
+
+# Set the working directory inside the container
+WORKDIR /usr/src/app
+
+# Copy package.json and package-lock.json to the container
+COPY package*.json ./
+
+# Install app dependencies
+RUN npm install
+
+# Copy the rest of your app's source code
+COPY . .
+
+# Expose the port your app listens on
+EXPOSE 3000
+
+# Define the command to run your app
+CMD ["node", "index.js"]
+
